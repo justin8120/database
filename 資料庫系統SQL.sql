@@ -5,7 +5,7 @@ CREATE TABLE Customers (
     contact_person VARCHAR(50),      		   --主要聯絡人
     phone_number VARCHAR(20) NOT NULL,         --聯絡電話
     shipping_address VARCHAR(255) NOT NULL,    --送貨與發票地址
-    credit_limit DECIMAL(19,4)                 --信用額度
+    credit_limit DECIMAL(19,4),                --信用額度
 	CONSTRAINT chk_credit CHECK (credit_limit > 0)
 );
 
@@ -26,7 +26,7 @@ CREATE TABLE Products (
     length_mm DECIMAL(6,2) NOT NULL,           --螺絲長度(mm)
     
     --限制只能輸入這三種單位
-    unit ENUM('千隻', '公斤', '件') NOT NULL
+    unit ENUM('千隻', '公斤', '件') NOT NULL,
 	CONSTRAINT chk_pur_len CHECK (length_mm > 0)
 );
 
