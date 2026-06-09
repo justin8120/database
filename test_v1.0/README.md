@@ -345,7 +345,6 @@ MariaDB Connector 可正常載入
 
 ## 尚待處理
 
-* 將 `backend/.env` 中的 `DB_PASSWORD` 改成本機 MariaDB 真實密碼。
 * 啟動後端後確認 `/api/products` 是否能回傳資料。
 * 啟動前端後確認頁面是否能正常顯示 API 資料。
 
