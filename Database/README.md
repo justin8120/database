@@ -36,3 +36,8 @@ npm run dev
 ```sh
 npm run build
 ```
+
+### Python backend
+‵‵‵sh
+uvicorn main:app --reload
+‵‵‵
