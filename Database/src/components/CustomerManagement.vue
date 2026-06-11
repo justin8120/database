@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <div class="header-actions">
-      <h2>🏢 客戶資料管理</h2>
+      <h2>客戶資料管理</h2>
       <el-button type="success" size="large" @click="openDialog">
         <el-icon><Plus /></el-icon> 新增客戶
       </el-button>

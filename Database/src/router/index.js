@@ -3,9 +3,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 // 1. 引入各個功能頁面的元件
 import OrderOverview from '../components/OrderOverview.vue'
 // 提示：後續可以建立這三個對應的元件檔案
-import ProductManagement from '../components/ProductManagement.vue' 
+import ProductManagement from '../components/ProductManagement.vue'
 import CustomerManagement from '../components/CustomerManagement.vue'
 import PurchaseManagement from '../components/PurchaseManagement.vue'
+import SalesView from '../components/SalesView.vue'
+import FactoryView from '../components/FactoryView.vue'
+import FinanceView from '../components/FinanceView.vue'
 
 // 2. 定義路由清單
 const routes = [
@@ -32,6 +35,21 @@ const routes = [
     path: '/purchases',
     name: 'Purchases',
     component: PurchaseManagement
+  },
+  {
+    path: '/role/sales',
+    name: 'SalesView',
+    component: SalesView
+  },
+  {
+    path: '/role/factory',
+    name: 'FactoryView',
+    component: FactoryView
+  },
+  {
+    path: '/role/finance',
+    name: 'FinanceView',
+    component: FinanceView
   }
 ]
 

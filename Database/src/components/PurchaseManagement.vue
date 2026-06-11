@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <div class="header-actions">
-      <h2>📥 進貨紀錄管理</h2>
+      <h2>進貨紀錄管理</h2>
       <el-button type="warning" size="large" @click="openDialog">
         <el-icon><Plus /></el-icon> 登記進貨
       </el-button>

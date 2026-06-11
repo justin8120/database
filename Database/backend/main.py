@@ -266,7 +266,7 @@ def get_purchases():
                     pr.purchase_time,
                     pr.supplier_name,
                     pr.product_id,
-                    CONCAT(p.material_grade, ' ', p.thread_system, ' ', p.thread_size, 'x', p.length_mm, 'mm') AS product_spec,
+                    CONCAT(p.material_grade, ' ', p.thread_system, ' ', p.thread_size, ' ', 'x', ' ', p.length_mm, 'mm') AS product_spec,
                     pr.quantity,
                     p.unit,
                     pr.total_amount,
@@ -357,17 +357,23 @@ def create_purchase(purchase: PurchaseCreate):
             if cursor.fetchone():
                 return {"status": "error", "message": f"進貨單號 '{purchase.purchase_id}' 已經存在！"}
 
-            sql = """
-                INSERT INTO Purchase_Records 
-                (purchase_id, product_id, employee_id, supplier_name, quantity, total_amount, purchase_time)
+            sql_insert = """
+                INSERT INTO Purchase_Records (purchase_id, product_id, employee_id, supplier_name, quantity, total_amount, purchase_time)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
-            cursor.execute(sql, (
-                purchase.purchase_id, purchase.product_id, purchase.employee_id, 
-                purchase.supplier_name, purchase.quantity, purchase.total_amount, purchase.purchase_time
-            ))
+            cursor.execute(sql_insert, (purchase.purchase_id, purchase.product_id, purchase.employee_id, purchase.supplier_name, purchase.quantity, purchase.total_amount, purchase.purchase_time))
+
+            # 💡 3. 連動更新庫存：將該產品的 stock 加上進貨數量
+            sql_update_stock = """
+                UPDATE Products 
+                SET stock = stock + %s 
+                WHERE product_id = %s
+            """
+            cursor.execute(sql_update_stock, (purchase.quantity, purchase.product_id))
+
+            # 確保兩個動作都成功才 Commit
             connection.commit()
-            return {"status": "success", "message": "進貨紀錄登記成功！"}
+            return {"status": "success", "message": "進貨登記成功，庫存已同步同步增加！"}
     except Exception as e:
         connection.rollback()
         return {"status": "error", "message": str(e)}
@@ -380,6 +386,15 @@ def update_purchase(purchase_id: str, purchase: PurchaseCreate):
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
+            # 取得舊的進貨紀錄
+            cursor.execute("SELECT product_id, quantity FROM Purchase_Records WHERE purchase_id = %s", (purchase_id,))
+            old_record = cursor.fetchone()
+            if not old_record:
+                return {"status": "error", "message": "找不到該筆進貨紀錄"}
+            
+            # 扣除舊的庫存 (等於撤銷先前的進貨)
+            cursor.execute("UPDATE Products SET stock = stock - %s WHERE product_id = %s", (old_record['quantity'], old_record['product_id']))
+
             sql = """
                 UPDATE Purchase_Records 
                 SET product_id=%s, employee_id=%s, supplier_name=%s, 
@@ -390,6 +405,10 @@ def update_purchase(purchase_id: str, purchase: PurchaseCreate):
                 purchase.product_id, purchase.employee_id, purchase.supplier_name, 
                 purchase.quantity, purchase.total_amount, purchase.purchase_time, purchase_id
             ))
+
+            # 加上新的進貨庫存
+            cursor.execute("UPDATE Products SET stock = stock + %s WHERE product_id = %s", (purchase.quantity, purchase.product_id))
+
             connection.commit()
             return {"status": "success", "message": "進貨紀錄更新成功！"}
     except Exception as e:
@@ -404,6 +423,12 @@ def delete_purchase(purchase_id: str):
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
+            # 取得即將刪除的進貨紀錄，以便扣除庫存
+            cursor.execute("SELECT product_id, quantity FROM Purchase_Records WHERE purchase_id = %s", (purchase_id,))
+            old_record = cursor.fetchone()
+            if old_record:
+                cursor.execute("UPDATE Products SET stock = stock - %s WHERE product_id = %s", (old_record['quantity'], old_record['product_id']))
+
             sql = "DELETE FROM Purchase_Records WHERE purchase_id = %s"
             cursor.execute(sql, (purchase_id,))
             connection.commit()
@@ -445,6 +470,16 @@ def create_sales_order(order: SalesOrderCreate):
             if cursor.fetchone():
                 return {"status": "error", "message": f"訂單單號 '{order.order_id}' 已經存在！"}
 
+            for detail in order.details:
+                cursor.execute("SELECT stock FROM Products WHERE product_id = %s", (detail.product_id,))
+                prod = cursor.fetchone()
+                if not prod:
+                    return {"status": "error", "message": f"產品 {detail.product_id} 不存在"}
+                
+                if prod['stock'] < detail.quantity:
+                    # 庫存不足，直接中斷回傳錯誤，不寫入任何資料！
+                    return {"status": "error", "message": f"商品 {detail.product_id} 庫存不足！目前庫存: {prod['stock']}，需求: {detail.quantity}"}
+            
             # B. 寫入銷售訂單總檔（預設狀態為草稿）
             order_sql = """
                 INSERT INTO Sales_Orders (order_id, customer_id, employee_id, order_date, required_date, order_status)
@@ -460,18 +495,17 @@ def create_sales_order(order: SalesOrderCreate):
                 INSERT INTO Order_Details (order_id, product_id, quantity, unit_price, packaging_type, production_status)
                 VALUES (%s, %s, %s, %s, %s, '待進料')
             """
+            update_stock_sql = "UPDATE Products SET stock = stock - %s WHERE product_id = %s" # 扣庫存
+
             for detail in order.details:
-                cursor.execute(detail_sql, (
-                    order.order_id, detail.product_id, detail.quantity, 
-                    detail.unit_price, detail.packaging_type
-                ))
+                # 寫入明細
+                cursor.execute(detail_sql, (order.order_id, detail.product_id, detail.quantity, detail.unit_price, detail.packaging_type))
+                # 扣除庫存
+                cursor.execute(update_stock_sql, (detail.quantity, detail.product_id))
 
-            # 💡 核心安全點：全部指令順利跑完，才一口氣 Commit 寫入
             connection.commit()
-            return {"status": "success", "message": f"銷售訂單 {order.order_id} 及其明細已成功建立！"}
-
+            return {"status": "success", "message": "訂單建立成功！"}
     except Exception as e:
-        # 只要中間有任何一步出錯（例如某個 product_id 不存在導致外鍵報錯），立刻全數撤銷，絕不留下一半的殘缺資料
         connection.rollback()
         return {"status": "error", "message": str(e)}
     finally:
@@ -509,6 +543,12 @@ def update_sales_order(order_id: str, order: SalesOrderCreate):
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
+            # 0. 把舊明細的庫存先加回來
+            cursor.execute("SELECT product_id, quantity FROM Order_Details WHERE order_id = %s", (order_id,))
+            old_details = cursor.fetchall()
+            for old_detail in old_details:
+                cursor.execute("UPDATE Products SET stock = stock + %s WHERE product_id = %s", (old_detail['quantity'], old_detail['product_id']))
+
             # 1. 更新主檔
             update_sql = """
                 UPDATE Sales_Orders 
@@ -523,7 +563,16 @@ def update_sales_order(order_id: str, order: SalesOrderCreate):
             # 2. 刪除該訂單原有的所有明細
             cursor.execute("DELETE FROM Order_Details WHERE order_id = %s", (order_id,))
 
-            # 3. 重新寫入前端傳來的新明細陣列
+            # 3. 檢查新明細的庫存，並扣除庫存
+            for detail in order.details:
+                cursor.execute("SELECT stock FROM Products WHERE product_id = %s", (detail.product_id,))
+                prod = cursor.fetchone()
+                if not prod:
+                    raise Exception(f"產品 {detail.product_id} 不存在")
+                if prod['stock'] < detail.quantity:
+                    raise Exception(f"商品 {detail.product_id} 庫存不足！目前庫存: {prod['stock']}，需求: {detail.quantity}")
+
+            # 4. 重新寫入前端傳來的新明細陣列
             detail_sql = """
                 INSERT INTO Order_Details (order_id, product_id, quantity, unit_price, packaging_type, production_status)
                 VALUES (%s, %s, %s, %s, %s, '待進料')
@@ -533,6 +582,7 @@ def update_sales_order(order_id: str, order: SalesOrderCreate):
                     order_id, detail.product_id, detail.quantity, 
                     detail.unit_price, detail.packaging_type
                 ))
+                cursor.execute("UPDATE Products SET stock = stock - %s WHERE product_id = %s", (detail.quantity, detail.product_id))
 
             connection.commit()
             return {"status": "success", "message": "訂單更新成功！"}
@@ -550,9 +600,71 @@ def delete_sales_order(order_id: str):
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
+            # 取得即將被刪除的訂單明細，以便把庫存加回去
+            cursor.execute("SELECT product_id, quantity FROM Order_Details WHERE order_id = %s", (order_id,))
+            old_details = cursor.fetchall()
+            for old_detail in old_details:
+                cursor.execute("UPDATE Products SET stock = stock + %s WHERE product_id = %s", (old_detail['quantity'], old_detail['product_id']))
+
             cursor.execute("DELETE FROM Sales_Orders WHERE order_id = %s", (order_id,))
             connection.commit()
             return {"status": "success", "message": "訂單已徹底刪除！"}
+    except Exception as e:
+        connection.rollback()
+        return {"status": "error", "message": str(e)}
+    finally:
+        connection.close()
+
+# --- 7. 工廠端視角 (GET) ---
+@app.get("/api/view/factory-production")
+def get_factory_production():
+    """撈取工廠生產檢視表資料"""
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM view_factory_production"
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            return {"status": "success", "data": result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    finally:
+        connection.close()
+
+# --- 8. 會計端視角 (GET) ---
+@app.get("/api/view/order-financial-summary")
+def get_order_financial_summary():
+    """撈取財務檢視表資料"""
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM view_order_financial_summary"
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            return {"status": "success", "data": result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    finally:
+        connection.close()
+
+class ProductionStatusUpdate(BaseModel):
+    production_status: str
+
+# --- 9. 更新生產進度 (PUT) ---
+@app.put("/api/orders/{order_id}/details/{product_id}/production-status")
+def update_production_status(order_id: str, product_id: str, status_update: ProductionStatusUpdate):
+    """更新訂單明細的生產進度"""
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            sql = """
+                UPDATE Order_Details 
+                SET production_status = %s 
+                WHERE order_id = %s AND product_id = %s
+            """
+            cursor.execute(sql, (status_update.production_status, order_id, product_id))
+            connection.commit()
+            return {"status": "success", "message": "生產進度已更新！"}
     except Exception as e:
         connection.rollback()
         return {"status": "error", "message": str(e)}

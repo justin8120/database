@@ -14,7 +14,7 @@
       >
         <el-menu-item index="/orders">
           <el-icon><List /></el-icon>
-          <span>訂單綜合明細</span>
+          <span>訂單綜合管理</span>
         </el-menu-item>
         
         <el-menu-item index="/products">
@@ -31,6 +31,23 @@
           <el-icon><Money /></el-icon>
           <span>進貨紀錄管理</span>
         </el-menu-item>
+
+        <div style="color: #909399; padding: 10px 20px; font-size: 12px; margin-top: 10px;">角色專屬視圖</div>
+        
+        <el-menu-item index="/role/sales">
+          <el-icon><Briefcase /></el-icon>
+          <span>業務查看系統</span>
+        </el-menu-item>
+        
+        <el-menu-item index="/role/factory">
+          <el-icon><Setting /></el-icon>
+          <span>工廠生產系統</span>
+        </el-menu-item>
+        
+        <el-menu-item index="/role/finance">
+          <el-icon><DataLine /></el-icon>
+          <span>會計財務系統</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -44,7 +61,7 @@
 
 <script setup>
 // 如果需要使用 Element Plus 的小圖示，記得引入（可選）
-import { List, Goods, User, Money } from '@element-plus/icons-vue'
+import { List, Goods, User, Money, Briefcase, Setting, DataLine } from '@element-plus/icons-vue'
 </script>
 
 <style scoped>

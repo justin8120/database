@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <div class="header-actions">
-      <h2>🏭 訂單綜合明細看板</h2>
+      <h2>訂單管理</h2>
       <el-button type="primary" size="large" @click="openDialog">
         <el-icon><Plus /></el-icon> 建立新訂單
       </el-button>
@@ -17,7 +17,16 @@
       </el-table-column>
       <el-table-column prop="產品編號" label="產品編號" width="140" />
       <el-table-column prop="產品規格" label="產品規格" min-width="180" />
-      <el-table-column prop="數量" label="數量" width="100" align="right" />
+      <el-table-column label="目前庫存" width="120" align="right">
+        <template #default="scope">
+          {{ productOptions.find(p => p.product_id === scope.row.產品編號)?.stock ?? '-' }} {{ productOptions.find(p => p.product_id === scope.row.產品編號)?.unit ?? '' }}
+        </template>
+      </el-table-column>
+      <el-table-column label="數量" width="120" align="right">
+        <template #default="scope">
+          {{ scope.row.數量 }} {{ productOptions.find(p => p.product_id === scope.row.產品編號)?.unit ?? '' }}
+        </template>
+      </el-table-column>
       <el-table-column prop="單價" label="單價" width="100" align="right">
         <template #default="scope">
           NT$ {{ scope.row.單價 }}
@@ -92,10 +101,16 @@
                 <el-option 
                   v-for="p in productOptions" 
                   :key="p.product_id" 
-                  :label="`${p.product_id} (${p.material_grade} ${p.thread_size})`" 
+                  :label="`${p.product_id} (${p.material_grade} ${p.thread_size}) - 庫存: ${p.stock}`" 
                   :value="p.product_id" 
                 />
               </el-select>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="目前庫存" width="90" align="center">
+            <template #default="scope">
+              {{ productOptions.find(p => p.product_id === scope.row.product_id)?.stock ?? '-' }}
             </template>
           </el-table-column>
 
@@ -154,7 +169,7 @@ const loading = ref(true)
 const dialogVisible = ref(false)
 const submitLoading = ref(false)
 const formRef = ref(null)
-const isEdit = ref(false) // 🌟 編輯模式標記
+const isEdit = ref(false)
 
 const form = reactive({
   order_id: '',
