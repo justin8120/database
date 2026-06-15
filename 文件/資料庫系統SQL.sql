@@ -26,8 +26,11 @@ CREATE TABLE Products (
     length_mm DECIMAL(6,2) NOT NULL,           --螺絲長度(mm)
     
     --限制只能輸入這三種單位
-    unit ENUM('千隻', '公斤', '件') NOT NULL,
+    unit ENUM('千隻', '公斤', '件') NOT NULL,	   --單位
+	
+	stock int(11) NOT NULL DEFAULT 0,		   --庫存量
 	CONSTRAINT chk_pur_len CHECK (length_mm > 0)
+	CONSTRAINT chk_stock CHECK (stock>=0);
 );
 
 --原料進貨紀錄表
