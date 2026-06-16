@@ -34,7 +34,7 @@ CREATE TABLE Products (
 );
 
 --原料進貨紀錄表
-CREATE TABLE Raw_Material_Purchases (
+CREATE TABLE Purchase_Records (
     purchase_id VARCHAR(20) PRIMARY KEY,	--進貨紀錄編號
     supplier_name VARCHAR(100) NOT NULL,    --直接記錄供應商名稱
     product_id VARCHAR(20) NOT NULL,        --產品規格
