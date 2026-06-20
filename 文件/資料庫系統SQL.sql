@@ -58,6 +58,9 @@ CREATE TABLE Sales_Orders (
     --限制只能輸入這四種訂單狀態
     order_status ENUM('草稿', '排產中', '待出貨', '已出貨') DEFAULT '草稿', 
     
+    --付款狀態
+    payment_status ENUM('未付款', '已付款') DEFAULT '未付款',
+    
     FOREIGN KEY (customer_id) REFERENCES Customers(customer_id),
     CONSTRAINT chk_dates CHECK (order_date <= required_date)
 );
