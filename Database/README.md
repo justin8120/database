@@ -36,13 +36,3 @@ npm run dev
 ```sh
 npm run build
 ```
-
-### Python 後端，在backend資料夾內輸入
-```sh
-uvicorn main:app --reload
-```
-
-### 匯入資料庫
-```sh
-打開Mariadb後匯入開頭為dump-nfu_database... 的檔案
-```

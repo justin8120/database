@@ -43,7 +43,7 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="進貨單號" prop="purchase_id">
-              <el-input v-model="form.purchase_id" :disabled="isEdit" placeholder="例如: PUR-001" />
+              <el-input v-model="form.purchase_id" :disabled="isEdit" placeholder="例如: PU-2026-0001" />
             </el-form-item>
           </el-col>
           <el-col :span="12">

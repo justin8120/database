@@ -29,7 +29,7 @@
       <el-form :model="form" :rules="rules" ref="formRef" label-width="110px" style="padding-right: 20px;">
         
         <el-form-item label="產品編號" prop="product_id">
-          <el-input v-model="form.product_id" :disabled="isEdit" placeholder="例如: P-304-M10-001" />
+          <el-input v-model="form.product_id" :disabled="isEdit" placeholder="例如: PR-SS-0001" />
         </el-form-item>
         
         <el-row :gutter="20">

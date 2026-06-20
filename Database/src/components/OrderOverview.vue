@@ -53,7 +53,7 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="訂單編號" prop="order_id">
-              <el-input v-model="form.order_id" :disabled="isEdit" placeholder="例如: ORD-2026-001" />
+              <el-input v-model="form.order_id" :disabled="isEdit" placeholder="例如: O-2026-06-0001" />
             </el-form-item>
           </el-col>
           <el-col :span="12">

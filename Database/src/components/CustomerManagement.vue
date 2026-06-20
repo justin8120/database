@@ -31,7 +31,7 @@
       <el-form :model="form" :rules="rules" ref="formRef" label-width="110px" style="padding-right: 20px;">
         
         <el-form-item label="客戶編號" prop="customer_id">
-          <el-input v-model="form.customer_id" :disabled="isEdit" placeholder="例如: CUST001" />
+          <el-input v-model="form.customer_id" :disabled="isEdit" placeholder="例如: C-US-2026-001" />
         </el-form-item>
         
         <el-form-item label="公司名稱" prop="customer_name">
